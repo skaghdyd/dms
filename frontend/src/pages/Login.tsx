@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Link,
+} from "@mui/material";
 import api from "../api/api";
+
+interface LoginResponse {
+  token: string;
+}
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -9,30 +22,69 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      const res = await api.post("/api/auth/login", { username, password });
-      alert("로그인 성공!");
-      console.log(res.data);
+      const res = await api.post<LoginResponse>("/api/auth/login", {
+        username,
+        password,
+      });
+      localStorage.setItem("token", res.data.token);
+      navigate("/documents");
     } catch (error) {
       alert("로그인 실패!");
     }
   };
 
   return (
-    <div>
-      <h2>로그인</h2>
-      <input
-        type="text"
-        placeholder="아이디"
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="비밀번호"
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>로그인</button>
-      <button onClick={() => navigate("/signup")}>회원가입</button>
-    </div>
+    <Container component="main" maxWidth="xs">
+      <Box
+        sx={{
+          marginTop: 8,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <Paper elevation={3} sx={{ p: 4, width: "100%" }}>
+          <Typography component="h1" variant="h5" align="center" gutterBottom>
+            로그인
+          </Typography>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            label="아이디"
+            autoFocus
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            label="비밀번호"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2 }}
+            onClick={handleLogin}
+          >
+            로그인
+          </Button>
+          <Box textAlign="center">
+            <Link
+              component="button"
+              variant="body2"
+              onClick={() => navigate("/signup")}
+            >
+              계정이 없으신가요? 회원가입
+            </Link>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
   );
 };
 
