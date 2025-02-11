@@ -1,17 +1,32 @@
 spring:
   application:
     name: dms
+  # datasource:
+  #   url: jdbc:mysql://localhost:3306/dms
+  #   username: root
+  #   password: mysql
+  #   driver-class-name: com.mysql.cj.jdbc.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
   datasource:
-    url: jdbc:mysql://localhost:3306/dms
-    username: root
-    password: mysql
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         "[format_sql]": true
+
 server:
   port: 8080
+
+jwt:
+  secret: your-very-long-and-secure-secret-key
+  expiration: 3600000 # 1 hour

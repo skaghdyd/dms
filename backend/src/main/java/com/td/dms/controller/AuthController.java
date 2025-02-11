@@ -9,15 +9,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.td.dms.dto.LoginRequest;
 import com.td.dms.dto.SignupRequest;
 import com.td.dms.service.UserService;
+import com.td.dms.util.JwtUtil;
+import com.td.dms.dto.LoginResponse;
 
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-
 public class AuthController {
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@RequestBody SignupRequest request) {
@@ -26,8 +28,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        // 로그인 검증 (userService에서 구현 필요)
         userService.login(request);
-        return ResponseEntity.ok("로그인 성공!");
+        
+        // 토큰 생성
+        String token = jwtUtil.generateToken(request.getUsername());
+        return ResponseEntity.ok(new LoginResponse(token));
     }
 }

@@ -3,7 +3,6 @@ package com.td.dms.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +16,7 @@ import com.td.dms.service.DocumentService;
 import com.td.dms.entity.Document;
 import com.td.dms.dto.DocumentRequest;
 import lombok.RequiredArgsConstructor;
-import com.td.dms.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -27,8 +26,9 @@ public class DocumentController {
 
     @PostMapping
     public ResponseEntity<Document> createDocument(@RequestBody DocumentRequest request,
-            @AuthenticationPrincipal User user) {
-        Document document = documentService.createDocument(user.getUsername(), request);
+            HttpServletRequest httpRequest) {
+        String username = (String) httpRequest.getAttribute("username");
+        Document document = documentService.createDocument(username, request);
         return ResponseEntity.ok(document);
     }
 
