@@ -17,8 +17,27 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const handleSignup = async () => {
+    // 입력값 검증
+    if (!username.trim() || !password.trim()) {
+      alert("아이디와 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+
+    if (username.trim().length < 4) {
+      alert("아이디는 4자 이상이어야 합니다.");
+      return;
+    }
+
+    if (password.trim().length < 6) {
+      alert("비밀번호는 6자 이상이어야 합니다.");
+      return;
+    }
+
     try {
-      await api.post("/api/auth/signup", { username, password });
+      await api.post("/api/auth/signup", {
+        username: username.trim(),
+        password: password.trim(),
+      });
       alert("회원가입 성공!");
       navigate("/login");
     } catch (error) {

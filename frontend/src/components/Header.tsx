@@ -26,6 +26,7 @@ import ThemeSettingsDialog from "./ThemeSettingsDialog";
 interface HeaderProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
+  onLogout: () => void;
 }
 
 // 커스텀 스타일링된 Tabs 컴포넌트
@@ -89,7 +90,7 @@ const LogoText = styled(Typography)(({ theme }) => ({
   fontWeight: 700,
 }));
 
-const Header = ({ currentTab, onTabChange }: HeaderProps) => {
+const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
   const navigate = useNavigate();
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(
     null
@@ -123,6 +124,7 @@ const Header = ({ currentTab, onTabChange }: HeaderProps) => {
   ];
 
   const handleLogout = () => {
+    onLogout();
     localStorage.removeItem("token");
     navigate("/login");
   };

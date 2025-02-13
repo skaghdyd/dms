@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
 import com.td.dms.dto.LoginRequest;
 import com.td.dms.dto.SignupRequest;
 import com.td.dms.service.UserService;
@@ -22,17 +24,14 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody SignupRequest request) {
+    public ResponseEntity<String> signup(@RequestBody @Valid SignupRequest request) {
         userService.registerUser(request);
         return ResponseEntity.ok("회원가입 성공!");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        // 로그인 검증 (userService에서 구현 필요)
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
         userService.login(request);
-        
-        // 토큰 생성
         String token = jwtUtil.generateToken(request.getUsername());
         return ResponseEntity.ok(new LoginResponse(token));
     }

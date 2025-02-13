@@ -10,24 +10,26 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import com.td.dms.service.DocumentService;
 
 import com.td.dms.entity.Document;
 import com.td.dms.dto.DocumentRequest;
 import lombok.RequiredArgsConstructor;
-import jakarta.servlet.http.HttpServletRequest;
+import com.td.dms.util.JwtUtil;
 
 @RestController
 @RequestMapping("/api/documents")
 @RequiredArgsConstructor
 public class DocumentController {
     private final DocumentService documentService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping
     public ResponseEntity<Document> createDocument(@RequestBody DocumentRequest request,
-            HttpServletRequest httpRequest) {
-        String username = (String) httpRequest.getAttribute("username");
+            @RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
         Document document = documentService.createDocument(username, request);
         return ResponseEntity.ok(document);
     }

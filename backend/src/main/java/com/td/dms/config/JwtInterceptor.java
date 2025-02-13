@@ -2,7 +2,7 @@ package com.td.dms.config;
 
 import com.td.dms.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;                
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -14,9 +14,10 @@ public class JwtInterceptor implements HandlerInterceptor {
     private final JwtUtil jwtUtil;
 
     @Override
-    public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) {
+    public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+            @NonNull Object handler) {
         String token = request.getHeader("Authorization");
-        
+
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
             if (jwtUtil.validateToken(token)) {

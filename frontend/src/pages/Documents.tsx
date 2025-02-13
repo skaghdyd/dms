@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import api from "../api/api";
 import {
-  Typography,
   TextField,
   Button,
-  Card,
-  CardContent,
   Box,
   Dialog,
   DialogTitle,
@@ -13,7 +10,13 @@ import {
   DialogActions,
   IconButton,
   DialogContentText,
-  Stack,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Paper,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -61,11 +64,22 @@ const Documents = () => {
   };
 
   const handleCreate = async () => {
+    // 입력값 검증
+    if (!title.trim() || !content.trim()) {
+      alert("제목과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    if (title.trim().length > 255) {
+      alert("제목은 255자를 초과할 수 없습니다.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       await api.post(
         "/api/documents",
-        { title, content },
+        { title: title.trim(), content: content.trim() },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -126,93 +140,74 @@ const Documents = () => {
           }
         />
 
-        <Stack spacing={1.5}>
-          {documents.map((doc) => (
-            <Card
-              key={doc.id}
-              sx={{
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? theme.palette.background.paper
-                    : "white",
-                "&:hover": {
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? theme.palette.action.hover
-                      : "#f5f5f5",
-                },
-                borderRadius: 1,
-                border: 1,
-                borderColor:
-                  theme.palette.mode === "dark"
-                    ? theme.palette.divider
-                    : "transparent",
-                transition: theme.transitions.create(
-                  ["background-color", "border-color"],
-                  {
-                    duration: theme.transitions.duration.shortest,
-                  }
-                ),
-              }}
-            >
-              <CardContent
-                sx={{
-                  py: 1.5,
-                  "&:last-child": { pb: 1.5 },
-                }}
-                onClick={() => handleDocumentClick(doc)}
-              >
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell width="25%">제목</TableCell>
+                <TableCell width="45%">내용</TableCell>
+                <TableCell align="right" width="10%">
+                  작성일
+                </TableCell>
+                <TableCell align="right" width="10%">
+                  수정일
+                </TableCell>
+                <TableCell align="right" width="10%">
+                  작업
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {documents.map((document) => (
+                <TableRow
+                  key={document.id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => handleDocumentClick(document)}
                 >
-                  <Box flex={1}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                      {doc.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        mb: 1,
-                      }}
-                    >
-                      {doc.content}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      마지막 수정:{" "}
-                      {new Date(doc.updatedAt).toLocaleDateString()}
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDeleteDialog(doc);
-                    }}
+                  <TableCell
+                    component="th"
+                    scope="row"
                     sx={{
-                      "&:hover": {
-                        backgroundColor:
-                          theme.palette.mode === "dark"
-                            ? "rgba(255, 255, 255, 0.08)"
-                            : "rgba(0, 0, 0, 0.04)",
-                      },
+                      maxWidth: "250px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Stack>
+                    {document.title}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      maxWidth: "400px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {document.content}
+                  </TableCell>
+                  <TableCell align="right">
+                    {new Date(document.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell align="right">
+                    {new Date(document.updatedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteDialog(document);
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
         <Dialog
           open={open}
@@ -270,6 +265,7 @@ const Documents = () => {
           open={detailOpen}
           onClose={() => setDetailOpen(false)}
           document={selectedDocument}
+          onUpdate={fetchDocuments}
         />
       </Box>
     </PageContainer>

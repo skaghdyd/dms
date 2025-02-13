@@ -18,14 +18,13 @@ public class JwtUtil {
 
     @Value("${jwt.expiration}")
     private long expireTime;
-    
+
     private Algorithm algorithm;
 
     @PostConstruct
     public void init() {
         this.algorithm = Algorithm.HMAC256(secretKey);
     }
-
 
     public String generateToken(String username) {
         return JWT.create()
@@ -45,8 +44,8 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             JWT.require(algorithm)
-                .build()
-                .verify(token);
+                    .build()
+                    .verify(token);
             return true;
         } catch (JWTVerificationException e) {
             return false;

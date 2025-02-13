@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Box, useTheme } from "@mui/material";
+import {
+  Box,
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+} from "@mui/material";
 import {
   Routes,
   Route,
@@ -17,6 +26,7 @@ import "./Layout.css";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +45,16 @@ const Layout = () => {
     navigate(`/${newTab}`);
   };
 
+  const handleLogout = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem("token");
+    setLogoutDialogOpen(false);
+    navigate("/login");
+  };
+
   return (
     <Box
       sx={{
@@ -48,7 +68,11 @@ const Layout = () => {
         overflow: "hidden", // 전체 레이아웃 스크롤 방지
       }}
     >
-      <Header currentTab={currentTab} onTabChange={handleTabChange} />
+      <Header
+        currentTab={currentTab}
+        onTabChange={handleTabChange}
+        onLogout={handleLogout}
+      />
       <Sidebar
         open={sidebarOpen}
         currentTab={currentTab}
@@ -58,7 +82,7 @@ const Layout = () => {
         sx={{
           flexGrow: 1,
           marginTop: "64px",
-          marginLeft: `${sidebarOpen ? 40 : -200}px`,
+          marginLeft: `${sidebarOpen ? 20 : -220}px`,
           transition: theme.transitions.create("margin", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -87,6 +111,21 @@ const Layout = () => {
           </Routes>
         </CustomScrollbar>
       </Box>
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+      >
+        <DialogTitle>로그아웃</DialogTitle>
+        <DialogContent>
+          <DialogContentText>로그아웃 하시겠습니까?</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutDialogOpen(false)}>취소</Button>
+          <Button onClick={confirmLogout} color="primary" variant="contained">
+            확인
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

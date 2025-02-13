@@ -21,10 +21,16 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    // 입력값 검증
+    if (!username.trim() || !password.trim()) {
+      alert("아이디와 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+
     try {
       const res = await api.post<LoginResponse>("/api/auth/login", {
-        username,
-        password,
+        username: username.trim(),
+        password: password.trim(),
       });
       localStorage.setItem("token", res.data.token);
       navigate("/documents");
