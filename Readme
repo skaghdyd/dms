@@ -1,5 +1,17 @@
 # DMS(문서 관리 시스템) API 문서
 
+##프로젝트 세팅
+1. git clone https://github.com/skaghdyd/dms.git
+2. 인텔리제이 프로젝트로 열기
+3. gradle.propeties에 jdk 23 버전 설정
+  ex: org.gradle.java.home=C:\\Program Files\\Java\\jdk-23
+3. cd frontend && npm install && npm run dev
+4. cd backend && ./gradlew build && ./gradlew bootRun
+5. 프론트 주소로 접속 ex) localhost:5173
+6. 회원가입 후 로그인
+7. 문서 기능, 게시판 기능, 첨부파일 기능, 댓글 기능, 테마기능 등을 확인
+
+
 ## 1. 인증 API
 
 ### 1.1 회원가입
