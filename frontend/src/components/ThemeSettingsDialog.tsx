@@ -6,22 +6,29 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Grid,
-  Radio,
-  FormControlLabel,
-  RadioGroup,
   Box,
   IconButton,
 } from "@mui/material";
-import { useTheme } from "../contexts/ThemeContext";
+import { ThemeColor, useTheme } from "../contexts/ThemeContext";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightness";
 import CloseIcon from "@mui/icons-material/Close";
+import CircleIcon from "@mui/icons-material/Circle";
 
 interface ThemeSettingsDialogProps {
   open: boolean;
   onClose: () => void;
 }
+
+const themeColors = [
+  { name: "blue", color: "#1976d2" },
+  { name: "purple", color: "#9c27b0" },
+  { name: "green", color: "#2e7d32" },
+  { name: "orange", color: "#ed6c02" },
+  { name: "red", color: "#d32f2f" },
+  { name: "cyan", color: "#0288d1" },
+];
 
 const ThemeSettingsDialog = ({ open, onClose }: ThemeSettingsDialogProps) => {
   const { mode, color, setMode, setColor } = useTheme();
@@ -68,52 +75,35 @@ const ThemeSettingsDialog = ({ open, onClose }: ThemeSettingsDialogProps) => {
           </ToggleButtonGroup>
         </Box>
 
-        <Box>
+        <Box sx={{ mt: 3 }}>
           <Typography variant="subtitle1" gutterBottom fontWeight="medium">
             테마 색상
           </Typography>
-          <RadioGroup
-            value={color}
-            onChange={(e) => setColor(e.target.value as any)}
-          >
-            <Grid container spacing={2}>
-              {[
-                { value: "blue", label: "블루", color: "#1976d2" },
-                { value: "purple", label: "퍼플", color: "#7b1fa2" },
-                { value: "green", label: "그린", color: "#2e7d32" },
-                { value: "orange", label: "오렌지", color: "#ed6c02" },
-              ].map((item) => (
-                <Grid item xs={6} key={item.value}>
-                  <FormControlLabel
-                    value={item.value}
-                    control={
-                      <Radio
-                        sx={{
-                          "&.Mui-checked": {
-                            color: item.color,
-                          },
-                        }}
-                      />
-                    }
-                    label={
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            backgroundColor: item.color,
-                            mr: 1,
-                          }}
-                        />
-                        {item.label}
-                      </Box>
-                    }
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </RadioGroup>
+          <Grid container spacing={1}>
+            {themeColors.map((themeColor) => (
+              <Grid item key={themeColor.name}>
+                <IconButton
+                  onClick={() => setColor(themeColor.name as ThemeColor)}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    color: themeColor.color,
+                    border: color === themeColor.name ? 2 : 0,
+                    borderColor: themeColor.color,
+                    p: 0,
+                    "&:hover": {
+                      bgcolor: "transparent",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      fontSize: 24,
+                    },
+                  }}
+                >
+                  <CircleIcon />
+                </IconButton>
+              </Grid>
+            ))}
+          </Grid>
         </Box>
       </DialogContent>
     </Dialog>

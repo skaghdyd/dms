@@ -1,7 +1,5 @@
 package com.td.dms.config;
 
-import com.td.dms.interceptor.TokenInterceptor;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

@@ -9,20 +9,10 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import CustomScrollbar from "./CustomScrollbar";
-import Documents from "../pages/Documents";
-import Boards from "../pages/Boards";
-import Calendar from "../pages/Calendar";
-import "./Layout.css";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -31,7 +21,6 @@ const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 현재 경로에서 현재 탭 결정
   const getCurrentTab = (path: string) => {
     if (path.startsWith("/documents")) return "documents";
     if (path.startsWith("/boards")) return "boards";
@@ -50,7 +39,7 @@ const Layout = () => {
   };
 
   const confirmLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setLogoutDialogOpen(false);
     navigate("/login");
   };
@@ -59,13 +48,8 @@ const Layout = () => {
     <Box
       sx={{
         display: "flex",
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? theme.palette.background.default
-            : "#f5f5f5",
         minHeight: "100vh",
-        maxWidth: "100vw",
-        overflow: "hidden", // 전체 레이아웃 스크롤 방지
+        bgcolor: theme.palette.background.default,
       }}
     >
       <Header
@@ -79,17 +63,17 @@ const Layout = () => {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
       <Box
+        component="main"
         sx={{
           flexGrow: 1,
-          marginTop: "64px",
-          marginLeft: `${sidebarOpen ? 20 : -220}px`,
-          transition: theme.transitions.create("margin", {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
           height: "calc(100vh - 64px)",
-          position: "relative",
-          overflowX: "hidden",
+          mt: "64px",
+          ml: sidebarOpen ? "240px" : "72px",
+          width: `calc(100% - ${sidebarOpen ? "240px" : "72px"})`,
+          position: "fixed",
+          right: 0,
+          transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+          overflow: "hidden",
         }}
       >
         <CustomScrollbar
@@ -103,12 +87,7 @@ const Layout = () => {
                 : "#f5f5f5",
           }}
         >
-          <Routes>
-            <Route path="/documents/*" element={<Documents />} />
-            <Route path="/boards/*" element={<Boards />} />
-            <Route path="/calendar/*" element={<Calendar />} />
-            <Route path="/" element={<Navigate to="/documents" replace />} />
-          </Routes>
+          <Outlet />
         </CustomScrollbar>
       </Box>
       <Dialog

@@ -1,4 +1,4 @@
-package com.td.dms.interceptor;
+package com.td.dms.config;
 
 import com.td.dms.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,13 +20,24 @@ public class TokenInterceptor implements HandlerInterceptor {
     public boolean preHandle(@NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response, @NonNull Object handler) {
         String authHeader = request.getHeader("Authorization");
+        String token = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return false;
+        // URL 파라미터에서 토큰 확인
+        if (authHeader == null) {
+            token = request.getParameter("token");
+            if (token == null) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
+            }
+        } else {
+            // Bearer 토큰 처리
+            if (!authHeader.startsWith("Bearer ")) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
+            }
+            token = authHeader.substring(7);
         }
 
-        String token = authHeader.substring(7);
         if (!jwtUtil.validateToken(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;

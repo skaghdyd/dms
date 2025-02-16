@@ -12,6 +12,8 @@ import {
   ListItemText,
   Box,
   styled,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -20,8 +22,10 @@ import PaletteIcon from "@mui/icons-material/Palette";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonIcon from "@mui/icons-material/Person";
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import Logo from "./Logo";
 import ThemeSettingsDialog from "./ThemeSettingsDialog";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface HeaderProps {
   currentTab: string;
@@ -92,10 +96,13 @@ const LogoText = styled(Typography)(({ theme }) => ({
 
 const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(
     null
   );
   const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const settingsMenuItems = [
     {
@@ -125,7 +132,7 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
 
   const handleLogout = () => {
     onLogout();
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     navigate("/login");
   };
 
@@ -138,13 +145,23 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
   };
 
   const handleSettingsItemClick = (item: (typeof settingsMenuItems)[0]) => {
-    if (item.path) {
-      navigate(item.path);
-    }
-    if (item.onClick) {
-      item.onClick();
+    if (item.label === "테마 설정") {
+      if (item.onClick) {
+        item.onClick();
+      }
+    } else {
+      setSnackbarOpen(true);
     }
     handleSettingsClose();
+  };
+
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    handleLogout();
+    setLogoutDialogOpen(false);
   };
 
   return (
@@ -154,9 +171,9 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           backgroundColor: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.primary.main
-              : theme.palette.background.paper,
+            theme.palette.mode === "dark"
+              ? theme.palette.background.default
+              : theme.palette.primary.main,
         }}
       >
         <Toolbar sx={{ height: 64, minHeight: 64 }}>
@@ -204,6 +221,10 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
             <StyledTab label="일정" value="calendar" />
           </StyledTabs>
 
+          <Typography variant="body2" sx={{ mr: 2 }}>
+            {user?.username}님 환영합니다.
+          </Typography>
+
           <StyledIconButton
             color="inherit"
             onClick={handleSettingsClick}
@@ -219,18 +240,20 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
             anchorEl={settingsAnchorEl}
             open={Boolean(settingsAnchorEl)}
             onClose={handleSettingsClose}
-            PaperProps={{
-              sx: {
-                mt: 1,
-                minWidth: 200,
-                boxShadow: "0px 2px 8px rgba(0,0,0,0.15)",
-                "& .MuiMenuItem-root": {
-                  "&:focus": {
-                    outline: "none",
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === "light"
-                        ? "rgba(0, 0, 0, 0.04)"
-                        : "rgba(255, 255, 255, 0.08)",
+            slotProps={{
+              paper: {
+                sx: {
+                  mt: 1,
+                  minWidth: 200,
+                  boxShadow: "0px 2px 8px rgba(0,0,0,0.15)",
+                  "& .MuiMenuItem-root": {
+                    "&:focus": {
+                      outline: "none",
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === "light"
+                          ? "rgba(0, 0, 0, 0.04)"
+                          : "rgba(255, 255, 255, 0.08)",
+                    },
                   },
                 },
               },
@@ -254,7 +277,11 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
               </MenuItem>
             ))}
           </Menu>
-          <StyledIconButton color="inherit" onClick={handleLogout}>
+          <StyledIconButton
+            color="inherit"
+            onClick={handleLogoutClick}
+            sx={{ ml: 2 }}
+          >
             <LogoutIcon />
           </StyledIconButton>
         </Toolbar>
@@ -264,6 +291,44 @@ const Header = ({ currentTab, onTabChange, onLogout }: HeaderProps) => {
         open={themeDialogOpen}
         onClose={() => setThemeDialogOpen(false)}
       />
+
+      <ConfirmDialog
+        open={logoutDialogOpen}
+        title="로그아웃"
+        message="정말 로그아웃 하시겠습니까?"
+        onConfirm={handleLogoutConfirm}
+        onCancel={() => setLogoutDialogOpen(false)}
+      />
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{
+          mt: 8, // AppBar 아래에 표시되도록 상단 여백 추가
+        }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="info"
+          variant="filled"
+          sx={(theme) => ({
+            width: "100%",
+            backgroundColor:
+              theme.palette.mode === "light"
+                ? theme.palette.primary.main
+                : theme.palette.primary.dark,
+            "& .MuiAlert-icon": {
+              color: theme.palette.common.white,
+            },
+            color: theme.palette.common.white,
+            boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.15)",
+          })}
+        >
+          해당 기능은 현재 개발 중입니다.
+        </Alert>
+      </Snackbar>
     </>
   );
 };

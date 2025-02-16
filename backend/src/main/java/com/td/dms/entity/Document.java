@@ -12,6 +12,11 @@ import jakarta.persistence.PreUpdate;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import java.util.List;
+import java.util.ArrayList;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Getter
 @Setter
@@ -37,6 +42,10 @@ public class Document {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonManagedReference
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FileEntity> files = new ArrayList<>();
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -46,5 +55,18 @@ public class Document {
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void addFile(FileEntity file) {
+        if (files == null) {
+            files = new ArrayList<>();
+        }
+        files.add(file);
+        file.setDocument(this);
+    }
+
+    public void removeFile(FileEntity file) {
+        files.remove(file);
+        file.setDocument(null);
     }
 }

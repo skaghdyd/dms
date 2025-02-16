@@ -10,9 +10,18 @@ const PageContainer = ({ children }: PageContainerProps) => {
     <Box
       sx={{
         p: 3,
-        height: "100%",
-        width: "100%",
-        overflow: "auto",
+        flexGrow: 1,
+        transition: "all 0.3s ease-in-out",
+        opacity: 1,
+        animation: "fadeIn 0.3s ease-in-out",
+        "@keyframes fadeIn": {
+          "0%": {
+            opacity: 0,
+          },
+          "100%": {
+            opacity: 1,
+          },
+        },
       }}
     >
       {children}

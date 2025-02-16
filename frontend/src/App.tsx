@@ -1,29 +1,16 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { CustomThemeProvider } from "./contexts/ThemeContext";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Layout from "./components/Layout";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { router } from "./routes";
 
-function App() {
+const App = () => {
   return (
-    <CustomThemeProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </CustomThemeProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;

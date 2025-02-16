@@ -6,24 +6,26 @@ import {
   ListItemIcon,
   ListItemText,
   Box,
-  IconButton,
   Typography,
   Divider,
   useTheme,
+  Snackbar,
+  Alert,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import DescriptionIcon from "@mui/icons-material/Description";
 import FolderIcon from "@mui/icons-material/Folder";
 import StarIcon from "@mui/icons-material/Star";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import AnnouncementIcon from "@mui/icons-material/Announcement";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import GroupsIcon from "@mui/icons-material/Groups";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EventIcon from "@mui/icons-material/Event";
 import TaskIcon from "@mui/icons-material/Task";
+import IconButton from "@mui/material/IconButton";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useState } from "react";
 
 interface SidebarProps {
   open: boolean;
@@ -59,12 +61,6 @@ const menuItems = {
     },
   ],
   boards: [
-    {
-      id: "notice",
-      title: "공지사항",
-      icon: <AnnouncementIcon />,
-      path: "/boards/notice",
-    },
     {
       id: "general",
       title: "일반게시판",
@@ -108,51 +104,176 @@ const menuTitles = {
 
 const Sidebar = ({ open, currentTab, onToggle }: SidebarProps) => {
   const navigate = useNavigate();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const location = useLocation();
+  const theme = useTheme();
   const currentMenuItems =
     menuItems[currentTab as keyof typeof menuItems] || [];
-  const theme = useTheme();
+
+  const handleMenuClick = (path: string) => {
+    navigate(path);
+  };
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <>
       <Drawer
-        variant="persistent"
-        anchor="left"
-        open={open}
+        variant="permanent"
         sx={{
-          width: 240,
+          width: open ? 240 : 72,
           flexShrink: 0,
+          whiteSpace: "nowrap",
           "& .MuiDrawer-paper": {
-            width: 240,
+            width: open ? 240 : 72,
             boxSizing: "border-box",
-            borderRight:
+            top: "64px",
+            height: "calc(100% - 64px)",
+            borderRight: `1px solid ${
               theme.palette.mode === "light"
-                ? "1px solid rgba(0, 0, 0, 0.12)"
-                : "1px solid rgba(255, 255, 255, 0.12)",
-            top: "64px", // 헤더 높이만큼 여백
-            height: "calc(100% - 64px)", // 전체 높이에서 헤더 높이 제외
+                ? "rgba(0, 0, 0, 0.12)"
+                : "rgba(255, 255, 255, 0.12)"
+            }`,
+            bgcolor: theme.palette.background.paper,
+            overflowX: "hidden",
+            transition: theme.transitions.create(["width", "opacity"], {
+              easing: theme.transitions.easing.easeInOut,
+              duration: theme.transitions.duration.standard,
+            }),
           },
         }}
+        open={open}
       >
-        <Box sx={{ p: 2 }}>
-          <Box sx={{ p: 2, pb: 1 }}>
-            <Typography variant="subtitle2" color="text.secondary">
-              {menuTitles[currentTab as keyof typeof menuTitles]}
-            </Typography>
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: open ? "space-between" : "center",
+              mb: 1,
+              minHeight: 48,
+            }}
+          >
+            {open && (
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                sx={{
+                  px: 2,
+                  py: 1,
+                  marginRight: 5,
+                  opacity: 0,
+                  animation: open
+                    ? `fadeIn 0.3s ease-in-out 0.1s forwards`
+                    : "none",
+                  "@keyframes fadeIn": {
+                    from: { opacity: 0 },
+                    to: { opacity: 1 },
+                  },
+                }}
+              >
+                {menuTitles[currentTab as keyof typeof menuTitles]}
+              </Typography>
+            )}
+            <IconButton
+              onClick={onToggle}
+              sx={{
+                position: "absolute",
+                right: open ? 8 : "50%",
+                transform: open ? "none" : "translateX(50%)",
+                transition: theme.transitions.create(["right", "transform"], {
+                  easing: theme.transitions.easing.easeInOut,
+                  duration: theme.transitions.duration.standard,
+                }),
+              }}
+            >
+              {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            </IconButton>
           </Box>
           <Divider />
           <List>
-            {currentMenuItems.map((item) => (
+            {currentMenuItems.map((item, index) => (
               <ListItem key={item.id} disablePadding>
                 <ListItemButton
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleMenuClick(item.path)}
+                  selected={location.pathname === item.path}
                   sx={{
+                    borderRadius: 1,
+                    mb: 0.5,
+                    justifyContent: open ? "initial" : "center",
+                    minHeight: 48,
+                    px: 2.5,
+                    width: "100%",
+                    opacity: 0,
+                    animation: open
+                      ? `fadeIn 0.3s ease-in-out ${
+                          0.1 + index * 0.05
+                        }s forwards`
+                      : "none",
+                    "@keyframes fadeIn": {
+                      from: { opacity: 0 },
+                      to: { opacity: 1 },
+                    },
+                    transition: theme.transitions.create(
+                      ["padding-left", "padding-right", "width"],
+                      {
+                        easing: theme.transitions.easing.easeInOut,
+                        duration: theme.transitions.duration.standard,
+                      }
+                    ),
+                    ...(open
+                      ? {
+                          pl: 2.5,
+                          pr: 2.5,
+                        }
+                      : {
+                          pl: 0.8,
+                          pr: 0,
+                        }),
                     "&:hover": {
-                      backgroundColor: "rgba(0, 0, 0, 0.04)",
+                      bgcolor: theme.palette.action.hover,
+                    },
+                    "&.Mui-selected": {
+                      bgcolor: theme.palette.action.selected,
                     },
                   }}
                 >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.title} />
+                  <ListItemIcon
+                    sx={{
+                      color:
+                        theme.palette.mode === "dark"
+                          ? theme.palette.primary.light
+                          : theme.palette.primary.main,
+                      minWidth: 0,
+                      mr: open ? 3 : "auto",
+                      justifyContent: "center",
+                      width: 24,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {open && (
+                    <ListItemText
+                      primary={item.title}
+                      sx={{
+                        opacity: open ? 1 : 0,
+                        transition: theme.transitions.create(
+                          ["opacity", "width"],
+                          {
+                            easing: theme.transitions.easing.easeInOut,
+                            duration: theme.transitions.duration.standard,
+                          }
+                        ),
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                      }}
+                    />
+                  )}
                 </ListItemButton>
               </ListItem>
             ))}
@@ -160,49 +281,28 @@ const Sidebar = ({ open, currentTab, onToggle }: SidebarProps) => {
         </Box>
       </Drawer>
 
-      <IconButton
-        onClick={onToggle}
-        size="small"
-        sx={{
-          position: "fixed",
-          left: open ? 240 : 0,
-          top: 84,
-          width: 16,
-          height: 32,
-          borderRadius: open ? "0 4px 4px 0" : "4px",
-          backgroundColor:
-            theme.palette.mode === "light"
-              ? theme.palette.background.paper
-              : theme.palette.background.default,
-          border:
-            theme.palette.mode === "light"
-              ? "1px solid rgba(0, 0, 0, 0.12)"
-              : "1px solid rgba(255, 255, 255, 0.12)",
-          borderLeft: open ? 0 : undefined,
-          boxShadow:
-            theme.palette.mode === "light"
-              ? "0 2px 4px rgba(0,0,0,0.05)"
-              : "0 2px 4px rgba(0,0,0,0.2)",
-          "&:hover": {
-            backgroundColor:
-              theme.palette.mode === "light"
-                ? theme.palette.grey[100]
-                : theme.palette.action.hover,
-          },
-          transition: theme.transitions.create(["left", "background-color"], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          zIndex: theme.zIndex.drawer + 1, // 드로어 위에 표시
-        }}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        {open ? (
-          <ChevronLeftIcon sx={{ fontSize: 14 }} />
-        ) : (
-          <ChevronRightIcon sx={{ fontSize: 14 }} />
-        )}
-      </IconButton>
-    </Box>
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="info"
+          variant="filled"
+          sx={{
+            width: "100%",
+            "& .MuiAlert-icon": {
+              color: "white",
+            },
+            color: "white",
+          }}
+        >
+          해당 기능은 현재 개발 중입니다.
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

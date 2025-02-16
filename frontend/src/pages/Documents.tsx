@@ -1,273 +1,325 @@
 import { useState, useEffect } from "react";
 import api from "../api/api";
 import {
-  TextField,
   Button,
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  DialogContentText,
-  TableContainer,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Paper,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Chip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DocumentDetail from "../components/DocumentDetail";
-import { useTheme } from "@mui/material/styles";
 import PageContainer from "../components/PageContainer";
 import PageTitle from "../components/PageTitle";
+import DocumentForm from "../components/DocumentForm";
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog";
+import DescriptionIcon from "@mui/icons-material/Description";
+import AlertSnackbar from "../components/AlertSnackbar";
 
 interface Document {
   id: number;
   title: string;
   content: string;
+  createdBy:
+    | {
+        id: number;
+        username: string;
+        role: string;
+      }
+    | string;
   createdAt: string;
   updatedAt: string;
+  files: Array<{
+    id: number;
+    originalFileName: string;
+    fileSize: number;
+  }>;
 }
 
 const Documents = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [open, setOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(
     null
   );
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [detailOpen, setDetailOpen] = useState(false);
-  const theme = useTheme();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isReadMode, setIsReadMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "warning" | "info",
+  });
+
+  const handleCloseAlert = () => {
+    setAlert((prev) => ({ ...prev, open: false }));
+  };
+
+  const showAlert = (
+    message: string,
+    severity: "success" | "error" | "warning" | "info" = "success"
+  ) => {
+    setAlert({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
+  const fetchDocuments = async () => {
+    try {
+      const response = await api.get("/documents");
+      const documentsData = Array.isArray(response.data) ? response.data : [];
+      setDocuments(documentsData);
+    } catch (error) {
+      console.error("문서 목록을 불러오는데 실패했습니다:", error);
+      setDocuments([]);
+    }
+  };
 
   useEffect(() => {
     fetchDocuments();
   }, []);
 
-  const fetchDocuments = async () => {
+  const handleCreateDocument = async (formData: FormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
-      const token = localStorage.getItem("token");
-      const response = await api.get("/api/documents", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setDocuments(response.data as Document[]);
+      const response = await api.createDocument(formData);
+      if (response) {
+        await fetchDocuments();
+        setIsFormOpen(false);
+        setSelectedDocument(null);
+        setIsEditing(false);
+        setIsReadMode(false);
+        showAlert("문서가 성공적으로 저장되었습니다.");
+      }
     } catch (error) {
-      alert("문서 목록을 불러오는데 실패했습니다.");
+      console.error("문서 생성 실패:", error);
+      showAlert("문서 생성에 실패했습니다.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleCreate = async () => {
-    // 입력값 검증
-    if (!title.trim() || !content.trim()) {
-      alert("제목과 내용을 모두 입력해주세요.");
-      return;
-    }
-
-    if (title.trim().length > 255) {
-      alert("제목은 255자를 초과할 수 없습니다.");
-      return;
-    }
+  const handleUpdateDocument = async (formData: FormData) => {
+    if (!selectedDocument || isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
-      await api.post(
-        "/api/documents",
-        { title: title.trim(), content: content.trim() },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setOpen(false);
-      setTitle("");
-      setContent("");
-      fetchDocuments();
+      const response = await api.updateDocument(selectedDocument.id, formData);
+      if (response) {
+        await fetchDocuments();
+        setIsFormOpen(false);
+        setSelectedDocument(null);
+        setIsEditing(false);
+        setIsReadMode(false);
+        showAlert("문서가 성공적으로 수정되었습니다.");
+      }
     } catch (error) {
-      alert("문서 생성에 실패했습니다.");
+      console.error("문서 수정 실패:", error);
+      showAlert("문서 수정에 실패했습니다.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteDocument = async () => {
     if (!selectedDocument) return;
 
     try {
-      const token = localStorage.getItem("token");
-      await api.delete(`/api/documents/${selectedDocument.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setDeleteDialogOpen(false);
+      await api.delete(`/documents/${selectedDocument.id}`);
+      setIsDeleteDialogOpen(false);
+      setIsFormOpen(false);
       setSelectedDocument(null);
-      fetchDocuments();
+      setIsEditing(false);
+      setIsReadMode(false);
+      await fetchDocuments();
+      showAlert("문서가 성공적으로 삭제되었습니다.");
     } catch (error) {
-      alert("문서 삭제에 실패했습니다.");
+      showAlert("문서 삭제에 실패했습니다.", "error");
     }
   };
 
-  const openDeleteDialog = (document: Document) => {
-    setSelectedDocument(document);
-    setDeleteDialogOpen(true);
+  const handleDownloadFile = async (fileId: number, fileName: string) => {
+    try {
+      await api.downloadFile(fileId, fileName);
+    } catch (error) {
+      showAlert("파일 다운로드에 실패했습니다.", "error");
+    }
   };
 
-  const handleDocumentClick = (document: Document) => {
-    setSelectedDocument(document);
-    setDetailOpen(true);
+  const handleRowClick = (doc: Document) => {
+    setSelectedDocument(doc);
+    setIsReadMode(true);
+    setIsFormOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setIsReadMode(true);
   };
 
   return (
     <PageContainer>
       <Box sx={{ width: "100%" }}>
         <PageTitle
-          title="문서 목록"
+          title="전체 문서"
           action={
             <Button
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setIsEditing(false);
+                setSelectedDocument(null);
+                setIsFormOpen(true);
+              }}
             >
-              새 문서
+              새 문서 작성
             </Button>
           }
         />
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell width="25%">제목</TableCell>
-                <TableCell width="45%">내용</TableCell>
-                <TableCell align="right" width="10%">
-                  작성일
-                </TableCell>
-                <TableCell align="right" width="10%">
-                  수정일
-                </TableCell>
-                <TableCell align="right" width="10%">
-                  작업
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {documents.map((document) => (
-                <TableRow
-                  key={document.id}
-                  hover
-                  sx={{ cursor: "pointer" }}
-                  onClick={() => handleDocumentClick(document)}
-                >
-                  <TableCell
-                    component="th"
-                    scope="row"
+        <Grid container spacing={2}>
+          {documents.map((doc) => (
+            <Grid item xs={12} sm={6} md={4} lg={2.4} key={doc.id}>
+              <Card
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "transform 0.2s",
+                  cursor: "pointer",
+                  "&:hover": {
+                    transform: "translateY(-4px)",
+                    boxShadow: 3,
+                  },
+                }}
+                onClick={() => handleRowClick(doc)}
+              >
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <DescriptionIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Typography variant="h6" component="div">
+                      {doc.title}
+                    </Typography>
+                  </Box>
+
+                  <Typography
+                    color="text.secondary"
                     sx={{
-                      maxWidth: "250px",
+                      mb: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {document.title}
-                  </TableCell>
-                  <TableCell
+                    {doc.content}
+                  </Typography>
+
+                  <Box
                     sx={{
-                      maxWidth: "400px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      mt: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
                     }}
                   >
-                    {document.content}
-                  </TableCell>
-                  <TableCell align="right">
-                    {new Date(document.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell align="right">
-                    {new Date(document.updatedAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteDialog(document);
-                      }}
+                    <Chip
+                      label={
+                        typeof doc.createdBy === "object" &&
+                        doc.createdBy !== null
+                          ? doc.createdBy.role
+                          : doc.createdBy
+                      }
+                      size="small"
+                      color="primary"
+                    />
+
+                    {doc.files && doc.files.length > 0 && (
+                      <Chip
+                        label={`첨부파일 ${doc.files.length}개`}
+                        size="small"
+                        color="info"
+                        variant="outlined"
+                      />
+                    )}
+
+                    {/* <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ ml: "auto" }}
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Dialog
-          open={open}
-          onClose={() => setOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>새 문서 작성</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="제목"
-              fullWidth
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <TextField
-              margin="dense"
-              label="내용"
-              fullWidth
-              multiline
-              rows={4}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>취소</Button>
-            <Button onClick={handleCreate} variant="contained">
-              작성
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-        >
-          <DialogTitle>문서 삭제</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              "{selectedDocument?.title}" 문서를 삭제하시겠습니까?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>취소</Button>
-            <Button onClick={handleDelete} color="error" variant="contained">
-              삭제
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <DocumentDetail
-          open={detailOpen}
-          onClose={() => setDetailOpen(false)}
-          document={selectedDocument}
-          onUpdate={fetchDocuments}
-        />
+                      작성일: {new Date(doc.createdAt).toLocaleDateString()}
+                    </Typography> */}
+                    {/* 작성일/수정일 정보를 담는 Box */}
+                    <Box sx={{ ml: "auto", textAlign: "right" }}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        작성일: {new Date(doc.createdAt).toLocaleDateString()}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                      >
+                        수정일: {new Date(doc.updatedAt).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
+
+      <DocumentForm
+        initialTitle={selectedDocument?.title}
+        initialContent={selectedDocument?.content}
+        initialFiles={selectedDocument?.files}
+        onSubmit={isEditing ? handleUpdateDocument : handleCreateDocument}
+        onCancel={() => {
+          setIsFormOpen(false);
+          setSelectedDocument(null);
+          setIsReadMode(false);
+          setIsEditing(false);
+        }}
+        onEdit={() => {
+          setIsReadMode(false);
+          setIsEditing(true);
+        }}
+        onCancelEdit={handleCancelEdit}
+        onDelete={() => {
+          setIsDeleteDialogOpen(true);
+        }}
+        onFileDownload={handleDownloadFile}
+        open={isFormOpen}
+        readOnly={isReadMode}
+        showDelete={!isReadMode && !!selectedDocument?.title}
+      />
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteDocument}
+        title="문서 삭제"
+        content="정말 이 문서를 삭제하시겠습니까?"
+      />
+
+      <AlertSnackbar
+        open={alert.open}
+        message={alert.message}
+        severity={alert.severity}
+        onClose={handleCloseAlert}
+      />
     </PageContainer>
   );
 };

@@ -36,4 +36,13 @@ public class UserService {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
     }
+
+    public boolean isUsernameAvailable(String username) {
+        return !userRepository.findByUsername(username).isPresent();
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+    }
 }

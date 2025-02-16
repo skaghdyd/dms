@@ -5,6 +5,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.validation.Valid;
 
@@ -34,5 +37,17 @@ public class AuthController {
         userService.login(request);
         String token = jwtUtil.generateToken(request.getUsername());
         return ResponseEntity.ok(new LoginResponse(token));
+    }
+
+    @GetMapping("/check-username/{username}")
+    public ResponseEntity<Boolean> checkUsername(@PathVariable String username) {
+        boolean isAvailable = userService.isUsernameAvailable(username);
+        return ResponseEntity.ok(isAvailable);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
+        return ResponseEntity.ok(userService.getUserByUsername(username));
     }
 }
