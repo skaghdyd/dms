@@ -2,7 +2,7 @@
 
 ##프로젝트 세팅
 1. git clone https://github.com/skaghdyd/dms.git
-2. 인텔리제이 프로젝트로 열기
+2. 인텔리제이로 프로젝트 열기
 3. gradle.propeties에 jdk 23 버전 설정
   ex: org.gradle.java.home=C:\\Program Files\\Java\\jdk-23
 3. cd frontend && npm install && npm run dev
