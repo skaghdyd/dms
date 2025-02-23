@@ -37,7 +37,7 @@ public class UserService {
         }
     }
 
-    public boolean isUsernameAvailable(String username) {
+    public Boolean isUsernameAvailable(String username) {
         return !userRepository.findByUsername(username).isPresent();
     }
 

@@ -55,54 +55,6 @@ const uploadFile = async (
   } as any);
 };
 
-// 문서 생성
-const createDocument = async (formData: FormData) => {
-  // FormData에서 파일 데이터 확인
-  const files = formData.getAll("files");
-
-  // 파일이 없는 경우 JSON으로 요청
-  if (files.length === 0) {
-    const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
-
-    return api.post(
-      "/documents",
-      {
-        title,
-        content,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-  }
-
-  // 파일이 있는 경우 multipart/form-data로 요청
-  return api.post("/documents", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-};
-
-// 문서 수정
-const updateDocument = async (id: number, formData: FormData) => {
-  try {
-    const response = await api.put(`/documents/${id}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        // Authorization 헤더는 인터셉터에서 자동으로 추가됨
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("문서 수정 에러:", error);
-    throw error;
-  }
-};
-
 // 파일 다운로드
 const downloadFile = async (fileId: number, originalFileName: string) => {
   const response = await api.get<Blob>(`/files/download/${fileId}`, {
@@ -131,11 +83,77 @@ const deleteFile = async (fileId: number) => {
   return api.delete(`/files/${fileId}`);
 };
 
+// 폴더 관련 API
+export const folderApi = {
+  // 폴더 목록 조회
+  getFolders: () => api.get("/folders"),
+
+  // 폴더 생성
+  createFolder: (name: string) => api.post("/folders", { name }),
+
+  // 폴더 수정
+  updateFolder: (id: number, name: string) =>
+    api.put(`/folders/${id}`, { name }),
+
+  // 폴더 삭제
+  deleteFolder: (id: number) => api.delete(`/folders/${id}`),
+};
+
+// 문서 관련 API 확장
+export const documentApi = {
+  // 기존 API들...
+  getAllDocuments: () => api.get("/documents"),
+  getDocumentById: (id: number) => api.get(`/documents/${id}`),
+
+  // 문서 생성
+  createDocument: async (formData: FormData) => {
+    try {
+      const response = await api.post("/documents", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response;
+    } catch (error) {
+      console.error("문서 생성 에러:", error);
+      throw error;
+    }
+  },
+
+  // 문서 수정
+  updateDocument: async (id: number, formData: FormData) => {
+    try {
+      const response = await api.put(`/documents/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response;
+    } catch (error) {
+      console.error("문서 수정 에러:", error);
+      throw error;
+    }
+  },
+
+  // 문서 삭제
+  deleteDocument: (id: number) => api.delete(`/documents/${id}`),
+
+  // 폴더별 문서 조회
+  getDocumentsByFolder: (folderId: number) =>
+    api.get(`/documents/folder/${folderId}`),
+
+  // 중요 문서 조회
+  getStarredDocuments: () => api.get("/documents/starred"),
+
+  // 최근 문서 조회
+  getRecentDocuments: () => api.get("/documents/recent"),
+};
+
 export default {
+  ...documentApi,
+  ...folderApi,
   ...api,
   uploadFile,
-  createDocument,
-  updateDocument,
   downloadFile,
   deleteFile,
 };

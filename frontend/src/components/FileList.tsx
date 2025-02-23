@@ -9,13 +9,9 @@ import {
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
-
+import { FileInfo } from "../types";
 interface FileListProps {
-  files: Array<{
-    id: number;
-    originalFileName: string;
-    fileSize: number;
-  }>;
+  files: Array<FileInfo>;
   onDelete?: (fileId: number) => void;
   onDownload?: (fileId: number, fileName: string) => void;
 }

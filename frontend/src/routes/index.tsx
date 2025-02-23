@@ -2,7 +2,10 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
-import Documents from "../pages/Documents";
+import AllDocuments from "../pages/AllDocuments";
+import FolderDocuments from "../pages/FolderDocuments";
+import StarredDocuments from "../pages/StarredDocuments";
+import RecentDocuments from "../pages/RecentDocuments";
 import Boards from "../pages/Boards";
 import PostForm from "../pages/PostForm";
 import PostDetail from "../pages/PostDetail";
@@ -17,23 +20,28 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/login" replace />,
+        element: <Navigate to="/documents" replace />,
       },
       {
         path: "documents",
-        element: <Documents />,
-      },
-      {
-        path: "documents/folders",
-        element: <UnderDevelopment title="폴더별 문서" />,
-      },
-      {
-        path: "documents/starred",
-        element: <UnderDevelopment title="중요 문서" />,
-      },
-      {
-        path: "documents/recent",
-        element: <UnderDevelopment title="최근 문서" />,
+        children: [
+          {
+            path: "",
+            element: <AllDocuments />,
+          },
+          {
+            path: "folders",
+            element: <FolderDocuments />,
+          },
+          {
+            path: "starred",
+            element: <StarredDocuments />,
+          },
+          {
+            path: "recent",
+            element: <RecentDocuments />,
+          },
+        ],
       },
       {
         path: "boards",

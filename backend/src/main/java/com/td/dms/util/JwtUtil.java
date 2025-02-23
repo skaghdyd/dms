@@ -41,7 +41,7 @@ public class JwtUtil {
         return jwt.getSubject();
     }
 
-    public boolean validateToken(String token) {
+    public Boolean validateToken(String token) {
         try {
             JWT.require(algorithm)
                     .build()

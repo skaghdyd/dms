@@ -90,7 +90,7 @@ public class FileService {
         }
     }
 
-    private boolean isAllowedExtension(String extension) {
+    private Boolean isAllowedExtension(String extension) {
         return Arrays.asList(".pdf", ".doc", ".docx", ".xls", ".xlsx")
                 .contains(extension.toLowerCase());
     }

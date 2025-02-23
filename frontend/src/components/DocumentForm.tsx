@@ -8,12 +8,22 @@ import {
   IconButton,
   Fade,
   Backdrop,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import FileList from "./FileList";
 import CloseIcon from "@mui/icons-material/Close";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import StarIcon from "@mui/icons-material/Star";
+import { folderApi } from "../api/api";
 
 interface DocumentFormProps {
+  open?: boolean;
   initialTitle?: string;
   initialContent?: string;
   initialFiles?: Array<{
@@ -21,16 +31,17 @@ interface DocumentFormProps {
     originalFileName: string;
     fileSize: number;
   }>;
-  onSubmit: (data: FormData) => void;
-  onCancel: () => void;
-  onFileDownload?: (fileId: number, fileName: string) => void;
-  open?: boolean;
+  initialFolderId?: number;
+  initialStarred?: boolean;
   readOnly?: boolean;
+  isEditing?: boolean;
+  onCancel: () => void;
+  onSubmit: (data: FormData) => void;
+  onDelete?: () => void;
+  onFileDownload?: (fileId: number, fileName: string) => void;
   onEdit?: () => void;
   onCancelEdit?: () => void;
   onFileDelete?: (fileId: number) => Promise<void>;
-  onDelete?: () => void;
-  showDelete?: boolean;
 }
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -73,6 +84,8 @@ const DocumentForm = ({
   initialTitle = "",
   initialContent = "",
   initialFiles = [],
+  initialFolderId,
+  initialStarred = false,
   onSubmit,
   onCancel,
   onFileDownload,
@@ -82,26 +95,78 @@ const DocumentForm = ({
   onCancelEdit,
   onFileDelete,
   onDelete,
-  showDelete = false,
+  isEditing = false,
 }: DocumentFormProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [files, setFiles] = useState(initialFiles);
   const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [titleError, setTitleError] = useState<string>("");
+  const [contentError, setContentError] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isContentChanged, setIsContentChanged] = useState(false);
+  const [folderId, setFolderId] = useState<number | undefined>(initialFolderId);
+  const [isStarred, setIsStarred] = useState(initialStarred);
+  const [folders, setFolders] = useState<Array<{ id: number; name: string }>>(
+    []
+  );
 
-  // 모달이 열리고 닫힐 때, 그리고 initialTitle, initialContent, initialFiles가 변경될 때 초기화
   useEffect(() => {
     if (open) {
       setTitle(initialTitle);
       setContent(initialContent);
       setFiles(initialFiles);
       setNewFiles([]);
+      setTitleError("");
+      setContentError("");
       setError(null);
+      setIsContentChanged(false);
+      setIsStarred(initialStarred);
+      setFolderId(initialFolderId);
     }
-  }, [open]); // 의존성 배열에 초기값들 추가
+  }, [open]);
+
+  const checkContentChanged = useCallback(() => {
+    const isTitleChanged = title !== initialTitle;
+    const isContentChanged = content !== initialContent;
+    const isFilesChanged =
+      newFiles.length > 0 || files.length !== initialFiles.length;
+    const isStarredChanged = isStarred !== initialStarred;
+    const isFolderIdChanged = folderId !== initialFolderId;
+    return (
+      isTitleChanged ||
+      isContentChanged ||
+      isFilesChanged ||
+      isStarredChanged ||
+      isFolderIdChanged
+    );
+  }, [
+    title,
+    content,
+    files,
+    newFiles,
+    isStarred,
+    folderId,
+    initialTitle,
+    initialContent,
+    initialFiles,
+    initialStarred,
+    initialFolderId,
+  ]);
+
+  useEffect(() => {
+    setIsContentChanged(checkContentChanged());
+  }, [
+    title,
+    content,
+    files,
+    newFiles,
+    isStarred,
+    folderId,
+    checkContentChanged,
+  ]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -148,6 +213,20 @@ const DocumentForm = ({
     }
   };
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTitle(value);
+    setTitleError("");
+    setIsSubmitted(false);
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setContent(value);
+    setContentError("");
+    setIsSubmitted(false);
+  };
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -159,33 +238,49 @@ const DocumentForm = ({
 
         // 제목 검증
         if (!title.trim()) {
-          setError("제목을 입력해주세요.");
+          setTitleError("제목을 입력해주세요.");
+          setIsSaving(false);
           return;
         }
 
         if (title.trim().length > 255) {
-          setError("제목은 255자를 초과할 수 없습니다.");
+          setTitleError("제목은 255자를 초과할 수 없습니다.");
+          setIsSaving(false);
           return;
         }
 
         // 내용 검증
         if (!content.trim()) {
-          setError("내용을 입력해주세요.");
+          setContentError("내용을 입력해주세요.");
+          setIsSaving(false);
           return;
         }
 
         if (content.trim().length > 1000) {
-          setError("내용은 1000자를 초과할 수 없습니다.");
+          setContentError("내용은 1000자를 초과할 수 없습니다.");
+          setIsSaving(false);
           return;
         }
 
         const formData = new FormData();
-        formData.append("title", title.trim());
-        formData.append("content", content.trim());
+
+        // DocumentRequest를 JSON으로 추가
+        const documentRequest = {
+          title: title.trim(),
+          content: content.trim(),
+          remainingFileIds: files.map((file) => file.id),
+          isStarred: isStarred,
+          folderId: folderId || null,
+        };
+
         formData.append(
-          "remainingFileIds",
-          JSON.stringify(files.map((file) => file.id))
+          "request",
+          new Blob([JSON.stringify(documentRequest)], {
+            type: "application/json",
+          })
         );
+
+        // 파일들 추가
         newFiles.forEach((file) => {
           formData.append("files", file);
         });
@@ -199,8 +294,34 @@ const DocumentForm = ({
         setIsSaving(false);
       }
     },
-    [title, content, files, newFiles, isSaving, onSubmit, isSubmitted]
+    [
+      title,
+      content,
+      files,
+      newFiles,
+      isSaving,
+      onSubmit,
+      isSubmitted,
+      isStarred,
+      folderId,
+    ]
   );
+
+  const handleCancelEdit = () => {
+    // 상태를 초기값으로 되돌림
+    setTitle(initialTitle);
+    setContent(initialContent);
+    setFiles(initialFiles); // 기존 파일 목록을 초기 상태로 복원
+    setIsStarred(initialStarred);
+    setFolderId(initialFolderId);
+    setNewFiles([]); // 새로 추가된 파일 목록 초기화
+    setTitleError("");
+    setContentError("");
+    setError(null);
+
+    // 부모 컴포넌트의 취소 핸들러 호출
+    onCancelEdit?.();
+  };
 
   // Dialog가 닫힐 때 상태 초기화
   useEffect(() => {
@@ -209,6 +330,19 @@ const DocumentForm = ({
       setIsSaving(false);
     }
   }, [open]);
+
+  // 폴더 목록 가져오기
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const response = await folderApi.getFolders();
+        setFolders(response.data as Array<{ id: number; name: string }>);
+      } catch (error) {
+        console.error("폴더 목록을 불러오는데 실패했습니다:", error);
+      }
+    };
+    fetchFolders();
+  }, []);
 
   if (!open) return null;
 
@@ -306,9 +440,11 @@ const DocumentForm = ({
                 fullWidth
                 label="제목"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={handleTitleChange}
                 disabled={readOnly || isSaving}
                 required
+                error={!!titleError}
+                helperText={titleError}
                 variant="outlined"
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -320,9 +456,11 @@ const DocumentForm = ({
                 fullWidth
                 label="내용"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={handleContentChange}
                 disabled={readOnly || isSaving}
                 required
+                error={!!contentError}
+                helperText={contentError}
                 multiline
                 rows={10}
                 variant="outlined"
@@ -346,11 +484,37 @@ const DocumentForm = ({
                 borderColor: "divider",
                 minHeight: 0,
                 bgcolor: "#f8f9fa",
+                height: "355px",
               }}
             >
-              <Typography variant="subtitle1" sx={{ mb: 1, flex: "0 0 auto" }}>
-                첨부 파일
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ mr: 1 }}>
+                  첨부 파일
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    backgroundColor: "rgba(0, 0, 0, 0.08)",
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  총 {files.length + newFiles.length}개
+                </Typography>
+              </Box>
+
+              {error && (
+                <Typography
+                  color="error"
+                  sx={{ mb: 1, whiteSpace: "pre-line" }}
+                >
+                  {error}
+                </Typography>
+              )}
+
               <Box sx={{ flex: 1, overflow: "auto" }}>
                 {files.length > 0 && (
                   <FileList
@@ -404,70 +568,100 @@ const DocumentForm = ({
 
           <Box
             sx={{
-              p: 2.5,
+              display: "flex",
+              justifyContent: "space-between",
               borderTop: 1,
               borderColor: "divider",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 1.5,
-              bgcolor: "#f8f9fa",
+              p: 2.5,
             }}
           >
-            {readOnly ? (
-              <>
-                <Button onClick={onCancel}>닫기</Button>
-                {onEdit && (
-                  <Button onClick={onEdit} variant="contained" color="primary">
-                    수정
-                  </Button>
-                )}
-              </>
-            ) : (
-              <>
-                <Button onClick={onCancel} disabled={isSaving}>
-                  닫기
-                </Button>
-                {initialTitle && (
-                  <>
-                    <Button onClick={onCancelEdit} disabled={isSaving}>
-                      취소
-                    </Button>
-                    {showDelete && (
-                      <Button
-                        onClick={onDelete}
-                        color="error"
-                        disabled={isSaving}
-                      >
-                        삭제
-                      </Button>
-                    )}
-                  </>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  variant="contained"
-                  disabled={isSaving || isSubmitted}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <FormControl disabled={readOnly} sx={{ minWidth: 200 }}>
+                <InputLabel>폴더</InputLabel>
+                <Select
+                  value={folderId || ""}
+                  onChange={(e) => setFolderId(e.target.value as number)}
+                  label="폴더"
                 >
-                  {isSaving ? "저장 중..." : "저장"}
-                </Button>
-              </>
-            )}
-          </Box>
+                  <MenuItem value="">
+                    <em>폴더 없음</em>
+                  </MenuItem>
+                  {folders.map((folder) => (
+                    <MenuItem key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-          {error && (
-            <Typography
-              color="error"
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={isStarred}
+                    onChange={(e) => {
+                      setIsStarred(e.target.checked);
+                    }}
+                    icon={<StarBorderIcon />}
+                    checkedIcon={<StarIcon />}
+                  />
+                }
+                label="중요 문서"
+                disabled={readOnly}
+              />
+            </Box>
+            <Box
               sx={{
-                p: 2,
-                textAlign: "center",
-                bgcolor: "#fff3f3",
-                borderTop: 1,
-                borderColor: "#ffcdd2",
+                display: "flex",
+                alignItems: "end",
+                gap: 1.5,
+                bgcolor: "#f8f9fa",
               }}
             >
-              {error}
-            </Typography>
-          )}
+              {readOnly ? (
+                <>
+                  <Button onClick={onCancel}>닫기</Button>
+                  {onEdit && (
+                    <Button
+                      onClick={onEdit}
+                      variant="contained"
+                      color="primary"
+                    >
+                      수정
+                    </Button>
+                  )}
+                </>
+              ) : isEditing ? (
+                <>
+                  <Button onClick={handleCancelEdit}>취소</Button>
+                  <Button onClick={onDelete} color="error">
+                    삭제
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    variant="contained"
+                    color="primary"
+                    disabled={isSaving || isSubmitted || !isContentChanged}
+                  >
+                    {isSaving ? "저장 중..." : "저장"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={onCancel} disabled={isSaving}>
+                    닫기
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    variant="contained"
+                    color="primary"
+                    disabled={isSaving || isSubmitted || !isContentChanged}
+                  >
+                    {isSaving ? "저장 중..." : "저장"}
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Box>
         </Paper>
       </Fade>
     </>

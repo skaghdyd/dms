@@ -1,8 +1,8 @@
 package com.td.dms.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,9 +20,7 @@ import com.td.dms.dto.DocumentRequest;
 import lombok.RequiredArgsConstructor;
 import com.td.dms.util.JwtUtil;
 import org.springframework.web.multipart.MultipartFile;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.td.dms.dto.DocumentResponse;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -33,63 +29,68 @@ public class DocumentController {
     private final DocumentService documentService;
     private final JwtUtil jwtUtil;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Document> createDocument(
-            @RequestHeader("Authorization") String token,
-            @RequestParam("title") String title,
-            @RequestParam("content") String content,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
-
+    @PostMapping
+    public ResponseEntity<DocumentResponse> createDocument(
+            @RequestPart(value = "request") DocumentRequest request,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            @RequestHeader("Authorization") String token) {
         String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
-        DocumentRequest request = new DocumentRequest();
-        request.setTitle(title);
-        request.setContent(content);
-
-        Document document = documentService.createDocument(username, request, files);
-        return ResponseEntity.ok(document);
-    }
-
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Document> createDocumentJson(
-            @RequestHeader("Authorization") String token,
-            @RequestBody DocumentRequest request) {
-
-        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
-        Document document = documentService.createDocument(username, request, null);
-        return ResponseEntity.ok(document);
+        Document document = documentService.createDocument(request, files, username);
+        DocumentResponse response = new DocumentResponse(document);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Document> updateDocument(
+    public ResponseEntity<DocumentResponse> updateDocument(
             @PathVariable Long id,
-            @RequestPart("title") String title,
-            @RequestPart("content") String content,
+            @RequestPart(value = "request") DocumentRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
-            @RequestPart("remainingFileIds") String remainingFileIdsJson) {
+            @RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
+        Document document = documentService.updateDocument(id, request, files, username);
+        DocumentResponse response = new DocumentResponse(document);
+        return ResponseEntity.ok(response);
+    }
 
-        DocumentRequest request = new DocumentRequest();
-        request.setTitle(title);
-        request.setContent(content);
+    @GetMapping("/folder/{folderId}")
+    public ResponseEntity<List<DocumentResponse>> getDocumentsByFolder(
+            @PathVariable Long folderId,
+            @RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
+        List<Document> documents = documentService.getDocumentsByFolder(folderId, username);
+        List<DocumentResponse> response = documents.stream()
+                .map(DocumentResponse::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
 
-        // JSON 문자열을 List<Long>으로 변환
-        List<Long> remainingFileIds;
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            remainingFileIds = mapper.readValue(remainingFileIdsJson,
-                    new TypeReference<List<Long>>() {
-                    });
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("파일 ID 목록 처리 중 오류가 발생했습니다.");
-        }
+    @GetMapping("/starred")
+    public ResponseEntity<List<DocumentResponse>> getStarredDocuments(
+            @RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
+        List<Document> documents = documentService.getStarredDocuments(username);
+        List<DocumentResponse> response = documents.stream()
+                .map(DocumentResponse::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
 
-        Document document = documentService.updateDocument(id, request, files, remainingFileIds);
-        return ResponseEntity.ok(document);
+    @GetMapping("/recent")
+    public ResponseEntity<List<DocumentResponse>> getRecentDocuments(
+            @RequestHeader("Authorization") String token) {
+        String username = jwtUtil.getUsernameFromToken(token.replace("Bearer ", ""));
+        List<Document> documents = documentService.getRecentDocuments(username);
+        List<DocumentResponse> response = documents.stream()
+                .map(DocumentResponse::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Document> getDocumentById(@PathVariable Long id) {
+    public ResponseEntity<DocumentResponse> getDocumentById(@PathVariable Long id) {
         Document document = documentService.getDocumentById(id);
-        return ResponseEntity.ok(document);
+        DocumentResponse response = new DocumentResponse(document);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -99,8 +100,11 @@ public class DocumentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Document>> getAllDocuments() {
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
         List<Document> documents = documentService.getAllDocuments();
-        return ResponseEntity.ok(documents);
+        List<DocumentResponse> response = documents.stream()
+                .map(DocumentResponse::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 }
